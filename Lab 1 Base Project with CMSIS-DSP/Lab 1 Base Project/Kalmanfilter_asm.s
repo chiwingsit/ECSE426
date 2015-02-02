@@ -1,7 +1,6 @@
 	AREA text, CODE, READONLY
 	EXPORT Kalmanfilter_asm
 	
-Kalmanfilter_asm
 	; R0: pointer to input array
 	; R1: pointer to output array
 	; R2: pointer to struct
@@ -14,6 +13,29 @@ Kalmanfilter_asm
 	; S4: value of k
 	; S5: value of next measurement from input
 	; S6: temp
+	
+test_workbench
+
+	;create arrays
+input 	DCFS 	0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0
+output 	DCFS 	0.0,1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0,10.0
+	;set pointer to arrays
+	ADR R0, input
+	ADR R1, output
+	;initialise values
+	;q
+	VLDR.F32 S0, =0.1
+	;r
+	VLDR.F32 S1, =0.1
+	;x
+	VLDR.F32 S2, =0.0
+	;p
+	VLDR.F32 S3, =0.1
+	
+	B loop
+
+Kalmanfilter_asm
+
 
 	;LOAD PARAMETERS FROM STRUCT ==============
 	;load q state
