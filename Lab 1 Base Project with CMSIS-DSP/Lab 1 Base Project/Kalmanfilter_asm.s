@@ -41,14 +41,11 @@ Kalmanfilter_asm
 	;load q state
 	VLDR.32 S0, [R2]
 	;load r state
-	ADD R4, R2, #4
-	VLDR.32 S1, [R4]
+	VLDR.32 S1, [R2,#4]
 	;load x state
-	ADD R4, R4, #4
-	VLDR.32 S2, [R4]
+	VLDR.32 S2, [R2,#8]
 	;load p state
-	ADD R4, R4, #4
-	VLDR.32 S3, [R4]
+	VLDR.32 S3, [R4,#12]
 	 
 	;LOOP =====================================
 loop
@@ -95,17 +92,13 @@ loop
 	 ;store q
 	 VSTR.32 S0, [R2]
 	 ;store r
-	 ADD R4, R2, #4
-	 VSTR.32 S1, [R4]
+	 VSTR.32 S1, [R2,#4]
 	 ;store x
-	 ADD R4, R4, #4
-	 VSTR.32 S2, [R4]
+	 VSTR.32 S2, [R4,#8]
 	 ;store p
-	 ADD R4, R4, #4
-	 VSTR.32 S3, [R4]
+	 VSTR.32 S3, [R4,#12]
 	 ;store k
-	 ADD R4, R4, #4
-	 VSTR.32 S4, [R4]
+	 VSTR.32 S4, [R4,#16]
 	 
 	 BX LR
 	 
