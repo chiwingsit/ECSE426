@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "arm_math.h"
 #include "test.h"
+#include "array.h"
 
 //typedef signed long int32_t;
 
@@ -71,8 +72,6 @@ float* convolution(float* inputArray, float* outputArray, int n){
 	return r;
 }
 
-//  arm_correlate_f32 (float32_t *pSrcA, uint32_t srcALen, float32_t *pSrcB, uint32_t srcBLen, float32_t *pDst);
-//	arm_conv_f32 (	float32_t * 	pSrcA,uint32_t 	srcALen,float32_t * 	pSrcB,uint32_t 	srcBLen,float32_t * 	pDst )		
 		
 
 int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, int length)
@@ -90,22 +89,24 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 
 int main()
 {
+	int length = sizeof(testVector)/sizeof(testVector[0]);
+	
 	kalman_state *kstate = (kalman_state*) malloc(sizeof(kalman_state));
 	kstate->q = 0.1;
 	kstate->r = 0.1;
 	kstate->p = 0.1;
 	kstate->x = 0.0;
 	
-	float output_asm[10];
-	float output_C[10];
+	float output_asm[length];
+	float output_C[length];
 	
 	float *pIn;
 	float *pOut;
 	
-	pIn = testArray;
+	pIn = testVector;
 	pOut = output_asm;
 	
-	Kalmanfilter_asm(pIn,pOut,kstate,10);
+	Kalmanfilter_asm(pIn,pOut,kstate,length);
 	
 	pOut = output_C;
 	kstate->q = 0.1;
@@ -113,29 +114,30 @@ int main()
 	kstate->p = 0.1;
 	kstate->x = 0.0;
 	
-	Kalmanfilter_C(pIn,pOut,kstate,10);
-	float *pointer_diff_C;
-	float *pointer_diff_CMSIS;
+	Kalmanfilter_C(pIn,pOut,kstate,length);
 	
-	pointer_diff_C = subs_diff(pIn, pOut, 10);
-	arm_sub_f32 ( pIn, pOut, pointer_diff_CMSIS, 10);
+	float *pdiff_C;
+	float *pdiff_CMSIS;
+	pdiff_C = subs_diff(pIn, pOut, length);
+	arm_sub_f32 ( pIn, pOut, pdiff_CMSIS, length);
 	
 	float mean_C;
 	float32_t mean_CMSIS;
-	mean_C = average_diff(pointer_diff_C, 10);
-	arm_mean_f32(pOut, 10, &mean_CMSIS);
+	mean_C = average_diff(pdiff_C, length);
+	arm_mean_f32(pdiff_CMSIS, 10, &mean_CMSIS);
 	
 	float std_C;
 	float32_t std_CMSIS;
-	std_C = standard_deviation(pointer_diff_C, 10);
-	arm_std_f32(pointer_diff_CMSIS, 10, &std_CMSIS);
+	std_C = standard_deviation(pdiff_C, length);
+	arm_std_f32(pdiff_CMSIS, length, &std_CMSIS);
 	
 	float32_t *pDst;
-	correlation(pIn,	pOut, 10);
-	arm_correlate_f32 (pIn, 10, pOut, 10, pDst);
+	correlation(pIn,	pOut, length);
+	arm_correlate_f32 (pIn, length, pOut, length, pDst);
 	
-	convolution(pIn, pOut,10);
-	arm_conv_f32 (pIn, 10, pOut, 10, pDst);	
+	float32_t *pCov;
+	convolution(pIn, pOut,length);
+	arm_conv_f32 (pIn, length, pOut, length, pCov);
 	
 	while(1);
 	return 0;
