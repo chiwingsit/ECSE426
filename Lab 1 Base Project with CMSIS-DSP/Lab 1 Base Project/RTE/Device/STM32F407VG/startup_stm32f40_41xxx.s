@@ -191,12 +191,15 @@ Reset_Handler    PROC
         ;IMPORT  SystemInit
         IMPORT  __main
 		IMPORT Kalmanfilter_asm
+		IMPORT test_workbench
 
                  ;LDR     R0, =SystemInit
                  ;BLX     R0
                  LDR     R0, =__main
                  BX      R0
                  ;LDR     R0, =Kalmanfilter_asm
+                 ;BX      R0
+				 ;LDR     R0, =test_workbench
                  ;BX      R0
                  ENDP
 
