@@ -89,7 +89,7 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 
 int main()
 {
-	int length = sizeof(testVector)/sizeof(testVector[0]);
+	int length = sizeof(testArray)/sizeof(testArray[0]);
 	
 	kalman_state *kstate = (kalman_state*) malloc(sizeof(kalman_state));
 	kstate->q = 0.1;
@@ -103,10 +103,11 @@ int main()
 	float *pIn;
 	float *pOut;
 	
-	pIn = testVector;
+	pIn = testArray;
 	pOut = output_asm;
 	
 	Kalmanfilter_asm(pIn,pOut,kstate,length);
+
 	
 	pOut = output_C;
 	kstate->q = 0.1;
@@ -115,6 +116,13 @@ int main()
 	kstate->x = 0.0;
 	
 	Kalmanfilter_C(pIn,pOut,kstate,length);
+	
+		
+	for(int i = 0; i < length; i++)
+	{
+		printf("%f\t%f\n", output_asm[i], output_C[i]);
+	}
+
 	
 	float *pdiff_C;
 	float *pdiff_CMSIS;
