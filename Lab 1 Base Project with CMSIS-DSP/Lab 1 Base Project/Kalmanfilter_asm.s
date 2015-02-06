@@ -22,7 +22,6 @@ Kalmanfilter_asm
 	 
 	;LOOP =====================================
 loop
-	
 	VADD.F32 S3, S3, S0 ;p = p + q
 	VADD.F32 S5, S3, S1	;temp = p + r
 	VDIV.F32 S4, S3, S5	;k = p / p + r
@@ -43,29 +42,9 @@ loop
 
 	SUBS R3, R3, #1		;decrement array length (# of elements remaining)
 	
-	BEQ	store
-	
-	VADD.F32 S3, S3, S0 ;p = p + q
-	VADD.F32 S5, S3, S1	;temp = p + r
-	VDIV.F32 S4, S3, S5	;k = p / p + r
+	BEQ	store 			;if end of array reached, exit loop
 
-	VLDR.32 S5, [R0]	;load next measurement from input array
-	ADD R0, R0, #4		;increment input array index
-
-	VSUB.F32 S5, S5, S2	;temp = measurement - x
-	VMUL.F32 S5, S4, S5	;temp = k * (measurement - x)
-	VADD.F32 S2, S2, S5	;x = x + k * (measurement - x)
-
-	VLDR.F32 S5, =1.0 	
-	VSUB.F32 S5, S5, S4	;temp = 1 - k
-	VMUL.F32 S3, S5, S3 ;p = (1 - k) * p
-
-	VSTR.32 S2, [R1]	;store x value to output array
-	ADD R1, R1, #4		;increment output array index
-
-	SUBS R3, R3, #1		;decrement array length (# of elements remaining)
-	
-	BEQ	store
+	;unwrapping of the loop to decrease runtime
 	
 	VADD.F32 S3, S3, S0 ;p = p + q
 	VADD.F32 S5, S3, S1	;temp = p + r
