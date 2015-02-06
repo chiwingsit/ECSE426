@@ -1,0 +1,38 @@
+Kalmanfilter_asm
+0.00161004 sec
+
+Kalmanfilter_c
+0.00321900 sec
+
+subtract_c
+0.00075520 sec
+
+subtract_lib
+0.00044104 sec
+
+mean_c
+0.00050456 sec
+
+mean_lib
+0.00021560 sec
+
+std_c
+0.00169504 sec
+
+std_lib
+0.00036880 sec
+
+correlation_c
+1.45681300 sec
+
+correlation_lib
+0.56469056 sec
+
+convolution_c
+1.33040904 sec
+
+convolution_lib
+0.54082616 sec
+
+
+

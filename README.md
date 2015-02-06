@@ -1,2 +1,2 @@
 # ECSE426
-ECSE 426 - MicroP
+ECSE 426 - Microprocessor Systems
