@@ -20,6 +20,7 @@ typedef int bool;
 
 extern int Kalmanfilter_asm (float* InputArray, float* OutputArray, kalman_state* kstate, int length);
 
+// Difference between two arrays
 void subs_diff(float* inputArray, float* outputArray, float* diffArray, int n){
 	int i;
 	for (i = 0; i < n; i++)
@@ -29,6 +30,7 @@ void subs_diff(float* inputArray, float* outputArray, float* diffArray, int n){
 	}
 }
 
+// Average
 void average(float* x, int n, float *mean){
 	int i;
 	float sum=0;
@@ -40,6 +42,7 @@ void average(float* x, int n, float *mean){
 		
 }
 
+// Standard Deviation
 void standard_deviation(float* data, int n, float *std){
 	float mean, sum_deviation=0.0;
 	
@@ -53,17 +56,20 @@ void standard_deviation(float* data, int n, float *std){
 	 *std = sqrt(sum_deviation/n); 
 }
 
+// Correlation
 float* correlation(float* pSrcA, int srcALen, float* pSrcB, int srcBLen, float* pDst){
 int i,k, kmin, kmax;
 	for (i = 0; i < srcALen + srcBLen - 1; i++)
 	{
 		pDst[i] = 0;
 		
+		// Get the min index of the first array
 		if(i < srcBLen - 1)
 			kmin = 0;
 		else
 			kmin = i - (srcBLen - 1);
 		
+		// Get the max index of the first array
 		if(i < srcALen - 1)
 			kmax = i;
 		else
@@ -76,17 +82,21 @@ int i,k, kmin, kmax;
 	}
 }
 
+
+// Convolution
 void convolution(float* pSrcA, int srcALen, float* pSrcB, int srcBLen, float* pDst){
 	int i,k, kmin, kmax;
 	for (i = 0; i < srcALen + srcBLen - 1; i++)
 	{
 		pDst[i] = 0;
 		
+		// Get the min index of the first array
 		if(i < srcBLen - 1)
 			kmin = 0;
 		else
 			kmin = i - (srcBLen - 1);
 		
+		// Get the max index of the first array
 		if(i < srcALen - 1)
 			kmax = i;
 		else
@@ -99,6 +109,7 @@ void convolution(float* pSrcA, int srcALen, float* pSrcB, int srcBLen, float* pD
 	}
 }
 
+// Test if two float two arrays are equal
 bool areEqual(float *arrayA, float *arrayB, int length, float tol, char *err_message)
 {
 	
@@ -114,6 +125,7 @@ bool areEqual(float *arrayA, float *arrayB, int length, float tol, char *err_mes
 }
 		
 
+// Kalman Filter
 int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, int length)
 {
 	int i;
@@ -130,11 +142,11 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 int main()
 {
 	int length = sizeof(testVector)/sizeof(testVector[0]);
-	
+	// Initialize kstruct
 	kalman_state *kstate = (kalman_state*) malloc(sizeof(kalman_state));
-	kstate->q = 0.1;
-	kstate->r = 0.1;
-	kstate->p = 0.1;
+	kstate->q = 0.005;
+	kstate->r = 5.0;
+	kstate->p = 0.0;
 	kstate->x = 0.0;
 	
 	float output_asm[length];
@@ -146,14 +158,17 @@ int main()
 	pIn = testVector;
 	pOut = output_asm;
 	
+	// Assembly Kalman Filter
 	Kalmanfilter_asm(pIn,pOut,kstate,length);
 	
+	// Initialize kstruct
 	pOut = output_C;
-	kstate->q = 0.1;
-	kstate->r = 0.1;
-	kstate->p = 0.1;
+	kstate->q = 0.005;
+	kstate->r = 5.0;
+	kstate->p = 0.0;
 	kstate->x = 0.0;
 	
+	// C Kalman Filter
 	Kalmanfilter_C(pIn,pOut,kstate,length);
 	
 	float tol = 0.00001;
@@ -162,33 +177,38 @@ int main()
 	float pDst_C[length];
 	float pDst_CMSIS[length];
 	
+	// Array Difference
 	subs_diff(pIn, pOut, pDst_C, length);
 	arm_sub_f32 ( pIn, pOut, pDst_CMSIS, length);
 	
 	areEqual(pDst_C,pDst_CMSIS,length,tol,"Difference test failed");
 	
+	// Array Mean
 	float mean_C;
 	float32_t mean_CMSIS;
 	average(pDst_C, length, &mean_C);
 	arm_mean_f32(pDst_CMSIS, length, &mean_CMSIS);
 	
-//	printf("%f\t%f\n", mean_C, mean_CMSIS);
+	printf("%f\t%f\n", mean_C, mean_CMSIS);
 	
+	// Standard Deviation
 	float std_C;
 	float32_t std_CMSIS;
 	standard_deviation(pDst_C, length, &std_C);
 	arm_std_f32(pDst_CMSIS, length, &std_CMSIS);
 	
-//	printf("%f\t%f\n", std_C, std_CMSIS);
+	printf("%f\t%f\n", std_C, std_CMSIS);
 	
 	float pFilter_C[2*length-1];
 	float pFilter_CMSIS[2*length-1];
 	
+	// Correlation
 	correlation(pIn, length, pOut, length, pFilter_C);
 	arm_correlate_f32 (pIn, length, pOut, length, pFilter_CMSIS);
 
 	areEqual(pFilter_C,pFilter_CMSIS,length,tol,"Correlation test failed");
 
+	// Convolution
 	convolution(pIn, length, pOut, length, pFilter_C);
 	arm_conv_f32 (pIn, length, pOut, length, pFilter_CMSIS);
 	
