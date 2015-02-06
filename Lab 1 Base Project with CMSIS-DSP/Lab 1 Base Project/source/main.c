@@ -14,64 +14,104 @@ typedef struct
 	float k;
 }kalman_state;
 
+typedef int bool;
+#define true 1
+#define false 0
+
 extern int Kalmanfilter_asm (float* InputArray, float* OutputArray, kalman_state* kstate, int length);
 
-float* subs_diff(float* inputArray, float* outputArray, int n){
+void subs_diff(float* inputArray, float* outputArray, float* diffArray, int n){
 	int i;
-	float subArray[10];
 	for (i = 0; i < n; i++)
 	{	
 		/*substraction of original and output */
-		subArray[i] = inputArray[i] - outputArray[i];	
+		diffArray[i] = inputArray[i] - outputArray[i];	
 	}
-	return subArray;
 }
 
-float average_diff(float* x, int n){
+void average(float* x, int n, float *mean){
 	int i;
-	float sum=0, average;
+	float sum=0;
 	for (i = 0; i < n; i++)
 	{
 			sum = sum + x[i];
 	}
-	average = sum / (float)n;
-	return average;
+	*mean = sum/n;
 		
 }
 
-float standard_deviation(float* data, int n){
-	float mean=0.0, sum_deviation=0.0;
+void standard_deviation(float* data, int n, float *std){
+	float mean, sum_deviation=0.0;
+	
+	average( data, n, &mean);
+	
 	int i;
 	for(i=0; i<n;++i)
 	{
-		mean+=data[i];
+		sum_deviation =sum_deviation + (data[i]-mean)*(data[i]-mean);
 	}
-	mean=mean/n;
-	for(i=0; i<n;++i)
-	sum_deviation+=(data[i]-mean)*(data[i]-mean);
-	return sqrt(sum_deviation/n); 
-				
-}
-float* correlation(float* inputArray, float* outputArray, int n){
-	float r[n];
-	int i;
-	for (i = 0; i < n; i++)
-	{
-		r[i] = inputArray[i] * outputArray[n-i];
-	}
-	return r;
+	 *std = sqrt(sum_deviation/n); 
 }
 
-float* convolution(float* inputArray, float* outputArray, int n){
-	float r[n];
-	int i;
-	for (i = 0; i < n; i++)
+float* correlation(float* pSrcA, int srcALen, float* pSrcB, int srcBLen, float* pDst){
+int i,k, kmin, kmax;
+	for (i = 0; i < srcALen + srcBLen - 1; i++)
 	{
-		r[i] = inputArray[i] * outputArray[i];
+		pDst[i] = 0;
+		
+		if(i < srcBLen - 1)
+			kmin = 0;
+		else
+			kmin = i - (srcBLen - 1);
+		
+		if(i < srcALen - 1)
+			kmax = i;
+		else
+			kmax = srcALen - 1;
+
+    for (k = kmin; k <= kmax; k++)
+    {
+      pDst[i] += pSrcA[k] * pSrcB[srcBLen - (i - k) - 1];
+    }
 	}
-	return r;
 }
 
+void convolution(float* pSrcA, int srcALen, float* pSrcB, int srcBLen, float* pDst){
+	int i,k, kmin, kmax;
+	for (i = 0; i < srcALen + srcBLen - 1; i++)
+	{
+		pDst[i] = 0;
+		
+		if(i < srcBLen - 1)
+			kmin = 0;
+		else
+			kmin = i - (srcBLen - 1);
+		
+		if(i < srcALen - 1)
+			kmax = i;
+		else
+			kmax = srcALen - 1;
+
+    for (k = kmin; k <= kmax; k++)
+    {
+      pDst[i] += pSrcA[k] * pSrcB[i - k];
+    }
+	}
+}
+
+bool areEqual(float *arrayA, float *arrayB, int length, float tol, char *err_message)
+{
+	
+	for(int i = 0; i < length; i++)
+	{
+		if(arrayA[i] - arrayB[i] > tol || arrayA[i] - arrayB[i] < -tol)
+		{
+			printf("%s\n", err_message);
+			return false;
+		}
+	}
+	return true;
+}
 		
 
 int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, int length)
@@ -89,7 +129,7 @@ int Kalmanfilter_C(float* InputArray, float* OutputArray, kalman_state* kstate, 
 
 int main()
 {
-	int length = sizeof(testArray)/sizeof(testArray[0]);
+	int length = sizeof(testVector)/sizeof(testVector[0]);
 	
 	kalman_state *kstate = (kalman_state*) malloc(sizeof(kalman_state));
 	kstate->q = 0.1;
@@ -103,11 +143,10 @@ int main()
 	float *pIn;
 	float *pOut;
 	
-	pIn = testArray;
+	pIn = testVector;
 	pOut = output_asm;
 	
 	Kalmanfilter_asm(pIn,pOut,kstate,length);
-
 	
 	pOut = output_C;
 	kstate->q = 0.1;
@@ -117,40 +156,49 @@ int main()
 	
 	Kalmanfilter_C(pIn,pOut,kstate,length);
 	
-		
-	for(int i = 0; i < length; i++)
-	{
-		printf("%f\t%f\n", output_asm[i], output_C[i]);
-	}
-
+	float tol = 0.00001;
+	areEqual(output_C,output_asm,length,tol,"Kalman filter test failed");
 	
-	float *pdiff_C;
-	float *pdiff_CMSIS;
-	pdiff_C = subs_diff(pIn, pOut, length);
-	arm_sub_f32 ( pIn, pOut, pdiff_CMSIS, length);
+	float pDst_C[length];
+	float pDst_CMSIS[length];
+	
+	subs_diff(pIn, pOut, pDst_C, length);
+	arm_sub_f32 ( pIn, pOut, pDst_CMSIS, length);
+	
+	areEqual(pDst_C,pDst_CMSIS,length,tol,"Difference test failed");
 	
 	float mean_C;
 	float32_t mean_CMSIS;
-	mean_C = average_diff(pdiff_C, length);
-	arm_mean_f32(pdiff_CMSIS, 10, &mean_CMSIS);
+	average(pDst_C, length, &mean_C);
+	arm_mean_f32(pDst_CMSIS, length, &mean_CMSIS);
+	
+//	printf("%f\t%f\n", mean_C, mean_CMSIS);
 	
 	float std_C;
 	float32_t std_CMSIS;
-	std_C = standard_deviation(pdiff_C, length);
-	arm_std_f32(pdiff_CMSIS, length, &std_CMSIS);
+	standard_deviation(pDst_C, length, &std_C);
+	arm_std_f32(pDst_CMSIS, length, &std_CMSIS);
 	
-	float32_t *pDst;
-	correlation(pIn,	pOut, length);
-	arm_correlate_f32 (pIn, length, pOut, length, pDst);
+//	printf("%f\t%f\n", std_C, std_CMSIS);
 	
-	float32_t *pCov;
-	convolution(pIn, pOut,length);
-	arm_conv_f32 (pIn, length, pOut, length, pCov);
+	float pFilter_C[2*length-1];
+	float pFilter_CMSIS[2*length-1];
+	
+	correlation(pIn, length, pOut, length, pFilter_C);
+	arm_correlate_f32 (pIn, length, pOut, length, pFilter_CMSIS);
+
+	areEqual(pFilter_C,pFilter_CMSIS,length,tol,"Correlation test failed");
+
+	convolution(pIn, length, pOut, length, pFilter_C);
+	arm_conv_f32 (pIn, length, pOut, length, pFilter_CMSIS);
+	
+	areEqual(pFilter_C,pFilter_CMSIS,length,tol,"Convolution filter test failed");
+	
+	printf("Program End\n");
 	
 	while(1);
 	return 0;
 }
-
 
 
 
