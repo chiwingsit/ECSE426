@@ -14,9 +14,57 @@ GPIO_InitTypeDef  GPIO_InitStruct;
 ADC_InitTypeDef ADC_InitStruct;			
 ADC_CommonInitTypeDef ADC_CommonInitStruct;
 
+typedef struct
+{
+	float q;
+	float r;
+	float x;
+	float p;
+	float k;
+}kalman_state;
+
+kalman_state kstate_temp;
+
+// Kalman Filter
+void Kalmanfilter_C(float measurement, kalman_state* kstate)
+{
+		kstate->p = kstate->p + kstate->q;
+		kstate->k = kstate->p / (kstate->p + kstate->r);
+		kstate->x = kstate->x + kstate->k * (measurement-kstate->x);
+		kstate->p = (1-kstate->k) * kstate->p;
+}
+
+void enable_LED(int pos) 
+{
+		BitAction LED0 = Bit_RESET;
+		BitAction LED1 = Bit_RESET;
+		BitAction LED2 = Bit_RESET;
+		BitAction LED3 = Bit_RESET;
+	
+		switch(pos){
+			case 0:
+				LED0 = Bit_SET;
+				break;
+			case 1:
+				LED1 = Bit_SET;
+				break;
+			case 2:
+				LED2 = Bit_SET;
+				break;
+			case 3:
+				LED3 = Bit_SET;
+				break;
+		}
+
+		GPIO_WriteBit(GPIOD, GPIO_Pin_12, LED0);
+		GPIO_WriteBit(GPIOD, GPIO_Pin_13, LED1);
+		GPIO_WriteBit(GPIOD, GPIO_Pin_14, LED2);
+		GPIO_WriteBit(GPIOD, GPIO_Pin_15, LED3);
+}
+
 // READ TEMPERATURE -------------------------------------------------------------------------------
 //returns a temperature reading (Celsius) from sensor
-void readTemp (){
+float getTemp (){
 	
 		//enable A/D converter to sample the on board sensor ------------------------------------------
 	
@@ -68,9 +116,11 @@ void readTemp (){
 		TemperatureValue -= 0.760; // Subtract the reference voltage at 25°C
 		TemperatureValue /= .0025; // Divide by slope 2.5mV
 		TemperatureValue += 25.0; // Add the 25°C
-
-		printf ("temp: %f \n", TemperatureValue);
+		//printf ("%f\n", TemperatureValue);
+		return TemperatureValue;
 }
+
+
 
 // MAIN ---------- -------------------------------------------------------------------------------
 int main(void){
@@ -117,6 +167,11 @@ int main(void){
 		GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_DOWN;
 		GPIO_Init(GPIOA, &GPIO_InitStruct);
 	
+		float previousTemp = getTemp();
+		float currentTemp;
+		int position = 0;
+		enable_LED(position);
+		
 		//SysTick timer and obtain Temp reading ------------------------------------------------------
 		
 		while(1){		 
@@ -130,7 +185,19 @@ int main(void){
 					// Decrement ticks
 					ticks = 0;
 					// read temperature from the sensor
-					readTemp ();
+					currentTemp = getTemp ();
+					
+					printf ("%d\t%f\t%f\n", position, previousTemp, currentTemp);
+					if(currentTemp < previousTemp - 2){
+						previousTemp = currentTemp;
+						position = (position + 3) % 4;
+						enable_LED(position);
+					}
+					else if(currentTemp > previousTemp + 2){
+						previousTemp = currentTemp;
+						position = (position + 1) % 4;
+						enable_LED(position);
+					}
 				}
 		}
 }
