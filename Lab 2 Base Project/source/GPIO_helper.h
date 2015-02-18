@@ -3,6 +3,6 @@
 
 void GPIO_init();
 void enable_LED(int pos);
-void LEDs_ON();
-void LEDs_OFF();
+void LEDs_ON(void);
+void LEDs_OFF(void);
 

@@ -2,11 +2,8 @@
 #include "stdio.h"
 #include "GPIO_helper.h"
 #include "temperature_helper.h"
-#include "KalmanFilter.h"
 
 unsigned int ticks = 0; //for SysTick timer
-
-kalman_state kstate;
 
 // MAIN ---------- -------------------------------------------------------------------------------
 int main(void){
@@ -47,7 +44,7 @@ int main(void){
 					//printf ("%d\t%f\t%f\n", position, previousTemp, currentTemp);
 				}
 				
-				if(75 > 60){
+				if(currentTemp > 60){
 					PWM_counter++;
 					if(duty_cycle == max_period){
 						mode = 1;

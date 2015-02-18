@@ -1,10 +1,22 @@
 #include "temperature_helper.h"
+#include "KalmanFilter.h"
 
 //initialize A/D converter
 ADC_InitTypeDef ADC_InitStruct;			
 ADC_CommonInitTypeDef ADC_CommonInitStruct;
 
+
+kalman_state kstate = {
+	0.001,
+	3.821383247,
+	1048,
+	1,
+	0
+};
+
+
 void temp_init(){
+			
 		//enable A/D converter to sample the on board sensor ------------------------------------------
 
 		ADC_DeInit(); //Deinitialize the ADC
@@ -54,6 +66,8 @@ float getTemp (){
 		while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET)
 		; //Processing the conversion
 		TemperatureValue = ADC_GetConversionValue(ADC1); //Return the converted data
+		Kalmanfilter_C(TemperatureValue, &kstate);
+		printf ("%f\t%f\n",TemperatureValue,kstate.x);
 		TemperatureValue *= 3000; //voltage range 0 to 3 V
 		TemperatureValue /= 4095; //divide by 12-bits of resolution -> Reading in mV
 		TemperatureValue /= 1000.0; //Reading in Volts
