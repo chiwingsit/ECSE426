@@ -44,10 +44,10 @@ int main(void){
 				if(sampling == 20){
 					currentTemp = getTemp ();
 					sampling = 0;
+					//printf ("%d\t%f\t%f\n", position, previousTemp, currentTemp);
 				}
 				
-				printf ("%d\t%f\t%f\n", position, previousTemp, currentTemp);
-				if(currentTemp > 60){
+				if(75 > 60){
 					PWM_counter++;
 					if(duty_cycle == max_period){
 						mode = 1;
@@ -56,8 +56,8 @@ int main(void){
 						mode = 0;
 					}
 					if(PWM_counter == max_period){
+						PWM_counter = 0;
 						switch(mode){
-							PWM_counter = 0;
 							case 0:
 								duty_cycle += 1;
 							break;
