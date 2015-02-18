@@ -3,12 +3,10 @@
 #include "stm32f4xx_gpio.h" 	//GPIO (General purpose I/O) peripheral
 #include "stm32f4xx_adc.h" 		// A/D converter
 #include "stdio.h"
+#include "GPIO_helper.h"
 
 unsigned int ticks = 0; //for SysTick timer
 float TemperatureValue = 0;	
-
-//initialize I/O
-GPIO_InitTypeDef  GPIO_InitStruct; 
 
 //initialize A/D converter
 ADC_InitTypeDef ADC_InitStruct;			
@@ -32,34 +30,6 @@ void Kalmanfilter_C(float measurement, kalman_state* kstate)
 		kstate->k = kstate->p / (kstate->p + kstate->r);
 		kstate->x = kstate->x + kstate->k * (measurement-kstate->x);
 		kstate->p = (1-kstate->k) * kstate->p;
-}
-
-void enable_LED(int pos) 
-{
-		BitAction LED0 = Bit_RESET;
-		BitAction LED1 = Bit_RESET;
-		BitAction LED2 = Bit_RESET;
-		BitAction LED3 = Bit_RESET;
-	
-		switch(pos){
-			case 0:
-				LED0 = Bit_SET;
-				break;
-			case 1:
-				LED1 = Bit_SET;
-				break;
-			case 2:
-				LED2 = Bit_SET;
-				break;
-			case 3:
-				LED3 = Bit_SET;
-				break;
-		}
-
-		GPIO_WriteBit(GPIOD, GPIO_Pin_12, LED0);
-		GPIO_WriteBit(GPIOD, GPIO_Pin_13, LED1);
-		GPIO_WriteBit(GPIOD, GPIO_Pin_14, LED2);
-		GPIO_WriteBit(GPIOD, GPIO_Pin_15, LED3);
 }
 
 // READ TEMPERATURE -------------------------------------------------------------------------------
@@ -116,7 +86,7 @@ float getTemp (){
 		TemperatureValue -= 0.760; // Subtract the reference voltage at 25°C
 		TemperatureValue /= .0025; // Divide by slope 2.5mV
 		TemperatureValue += 25.0; // Add the 25°C
-		//printf ("%f\n", TemperatureValue);
+		
 		return TemperatureValue;
 }
 
@@ -125,80 +95,79 @@ float getTemp (){
 // MAIN ---------- -------------------------------------------------------------------------------
 int main(void){
 	
-		//enable I/O ---------------------------------------------------------------------------------
-
-		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE); //enables the peripheral clock to the GPIOD module
-
-		//GPIO_InitStruct.GPIO_Pin configures the pins that will be used.
-		//In this case we will use the LED's off of the discovery board which are on
-		//PortD pins 12, 13, 14 and 15
-		GPIO_InitStruct.GPIO_Pin = GPIO_Pin_15 | GPIO_Pin_14 | GPIO_Pin_13 | GPIO_Pin_12;
-
-		//PIO_InitStruct.GPIO_Mode configures the pin mode the options are as follows
-		GPIO_InitStruct.GPIO_Mode = GPIO_Mode_OUT;
-
-		//GPIO_InitStruct.GPIO_Speed configures the clock speed, options are as follows
-		GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-
-		//GPIO_InitStruct.GPIO_OType configures the pin type, options are as follows
-		GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-
-		//Configures pullup / pulldown resistors on pin, options are as follows
-		GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
-
-		//This finally passes all the values to the GPIO_Init function
-		//which takes care of setting the corresponding bits.
-		GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-		RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOA, ENABLE);
-
-		/**********************************************************************************
-		*
-		* This block of code defines the properties of the GPIOA port.
-		* We are defining Pin 0 as a digital input with a pulldown resistor
-		* to detect a high level.  Pin 0 is connected to the 3.3V source
-		*
-		**********************************************************************************/
-
-		GPIO_InitStruct.GPIO_Pin = GPIO_Pin_0;
-		GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN;
-		GPIO_InitStruct.GPIO_Speed = GPIO_Speed_50MHz;
-		GPIO_InitStruct.GPIO_OType = GPIO_OType_PP;
-		GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_DOWN;
-		GPIO_Init(GPIOA, &GPIO_InitStruct);
+		GPIO_init();
 	
 		float previousTemp = getTemp();
 		float currentTemp;
 		int position = 0;
 		enable_LED(position);
 		
+		int sampling = 0;
+		
+		int PWM_counter = 0;
+		int duty_cycle = 0;
+		int mode = 0;
+		int max_period = 15;
+		
 		//SysTick timer and obtain Temp reading ------------------------------------------------------
 		
 		while(1){		 
+			ticks = 0;
+			// Configure for 1 kHz period
+			SysTick_Config(SystemCoreClock / 1000); //Number of ticks between two interrupts
+			// or 1/Freq * SystemCoreClock
+			while(1){
+				// Wait for an interrupt
+				while(!ticks);
+				// Decrement ticks
 				ticks = 0;
-				// Configure for 20ms period (for 50 Hz)
-				SysTick_Config(20 * SystemCoreClock / 1000); //Number of ticks between two interrupts
-				// or 1/Freq * SystemCoreClock
-				while(1){
-					// Wait for an interrupt
-					while(!ticks);
-					// Decrement ticks
-					ticks = 0;
-					// read temperature from the sensor
+				
+				sampling++;
+				// read temperature from the sensor
+				if(sampling == 20){
 					currentTemp = getTemp ();
-					
-					printf ("%d\t%f\t%f\n", position, previousTemp, currentTemp);
-					if(currentTemp < previousTemp - 2){
-						previousTemp = currentTemp;
-						position = (position + 3) % 4;
-						enable_LED(position);
-					}
-					else if(currentTemp > previousTemp + 2){
-						previousTemp = currentTemp;
-						position = (position + 1) % 4;
-						enable_LED(position);
-					}
+					sampling = 0;
 				}
+				
+				//printf ("%d\t%f\t%f\n", position, previousTemp, currentTemp);
+				if(currentTemp > 60){
+					PWM_counter++;
+					if(duty_cycle == max_period){
+						mode = 1;
+					}
+					else if(duty_cycle == 0){
+						mode = 0;
+					}
+					if(PWM_counter == max_period){
+						switch(mode){
+							PWM_counter = 0;
+							case 0:
+								duty_cycle += 1;
+							break;
+							case 1:
+								duty_cycle -= 1;
+							break;
+						}
+					}
+					
+					if(PWM_counter < duty_cycle){
+						LEDs_ON();
+					}
+					else if(PWM_counter > duty_cycle){
+						LEDs_OFF();
+					}					
+				}
+				else if(currentTemp < previousTemp - 2){
+					previousTemp = currentTemp;
+					position = (position + 3) % 4;
+					enable_LED(position);
+				}
+				else if(currentTemp > previousTemp + 2){
+					previousTemp = currentTemp;
+					position = (position + 1) % 4;
+					enable_LED(position);
+				}
+			}
 		}
 }
 
