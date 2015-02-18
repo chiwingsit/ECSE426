@@ -1,79 +1,78 @@
+/*
+Group 8
+references: 
+- tutorial slides
+- http://myembeddedtutorial.blogspot.ca/2013/12/
+	working-with-stm32f4-temperature-sensor.html
+*/
+
 #include "temperature_helper.h"
 #include "KalmanFilter.h"
 
-//initialize A/D converter
-ADC_InitTypeDef ADC_InitStruct;			
-ADC_CommonInitTypeDef ADC_CommonInitStruct;
-
-
+// INITIALIZE KALMAN STATE
+// with initial values
 kalman_state kstate = {
-	0.001,
-	3.821383247,
-	1048,
-	1,
-	0
+	0.001,         // q
+	3.821383247,	 // r
+	1048,          // x
+	1,             // p
+	0              // k
 };
 
+// CONFIGURE ADC
+void ADC_init(){
 
-void temp_init(){
-			
-		//enable A/D converter to sample the on board sensor ------------------------------------------
+		// initialize ADC
+		ADC_InitTypeDef adc_init_s;			
+		ADC_CommonInitTypeDef adc_common_init_s;
 
-		ADC_DeInit(); //Deinitialize the ADC
+		// configure ADC sampling settings
+		RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE); // clock gating
+		adc_common_init_s.ADC_Mode 							= ADC_Mode_Independent;       	// independent mode
+		adc_common_init_s.ADC_Prescaler 				= ADC_Prescaler_Div8;  					// clock frequency
+		adc_common_init_s.ADC_DMAAccessMode 		= ADC_DMAAccessMode_Disabled;		// no DMA
+		adc_common_init_s.ADC_TwoSamplingDelay 	= ADC_TwoSamplingDelay_5Cycles; // delay between 2 sampling phases
+		ADC_CommonInit(&adc_common_init_s); // initialization
 
-		RCC_APB2PeriphClockCmd(RCC_APB2Periph_ADC1, ENABLE);
-		ADC_CommonInitStruct.ADC_Mode = ADC_Mode_Independent; //Configures the ADC to operate in independent or multi mode.
-		ADC_CommonInitStruct.ADC_Prescaler = ADC_Prescaler_Div8; //Select the frequency of the clock to the ADC. The clock is common for all the ADCs.
-		ADC_CommonInitStruct.ADC_DMAAccessMode = ADC_DMAAccessMode_Disabled; //Configures the Direct memory access mode for multi ADC mode.
-		ADC_CommonInitStruct.ADC_TwoSamplingDelay = ADC_TwoSamplingDelay_5Cycles; //Configures the Delay between 2 sampling phases.
-		ADC_CommonInit(&ADC_CommonInitStruct); //Two Sampling Delay = # * Time(ADCCLK) where # is between 5 and 20
+		// configure ADC settings
+		adc_init_s.ADC_Resolution 					= ADC_Resolution_12b; // 12-bit resolution
+		adc_init_s.ADC_ScanConvMode 				= DISABLE;
+		adc_init_s.ADC_ContinuousConvMode 	= DISABLE;
+		adc_init_s.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
+		adc_init_s.ADC_DataAlign 						= ADC_DataAlign_Right;
+		adc_init_s.ADC_NbrOfConversion 			= 1;
+		ADC_Init(ADC1, &adc_init_s); 				// initialization
 
-		//Configure The ADC Initialization Settings
-		ADC_InitStruct.ADC_Resolution = ADC_Resolution_12b; 		//12-bit resolution
-		ADC_InitStruct.ADC_ScanConvMode = DISABLE;
-		ADC_InitStruct.ADC_ContinuousConvMode = ENABLE;
-		ADC_InitStruct.ADC_ExternalTrigConvEdge = ADC_ExternalTrigConvEdge_None;
-		ADC_InitStruct.ADC_ExternalTrigConv = ADC_ExternalTrigConv_T1_CC1;
-		ADC_InitStruct.ADC_DataAlign = ADC_DataAlign_Right;
-		ADC_InitStruct.ADC_NbrOfConversion = 1;
-		ADC_Init(ADC1, &ADC_InitStruct);
-
-		// ADC1 Configuration, ADC_Channel_TempSensor is actual channel 16
-		ADC_RegularChannelConfig(ADC1, ADC_Channel_TempSensor, 1,
-		ADC_SampleTime_144Cycles);
-
-		// Enable internal temperature sensor
-		ADC_TempSensorVrefintCmd(ENABLE);
-
-		// Enable ADC conversion
-		ADC_Cmd(ADC1, ENABLE);
+		ADC_RegularChannelConfig(ADC1, ADC_Channel_16,
+		1, ADC_SampleTime_480Cycles); 		// configure: channel (16), rank, sample time
+		ADC_TempSensorVrefintCmd(ENABLE); // enable temperature sensor
+		ADC_Cmd(ADC1, ENABLE); 						// enable ADC1
 }
 
-// READ TEMPERATURE -------------------------------------------------------------------------------
-//returns a temperature reading (Celsius) from sensor
+// READ TEMPERATURE
+// returns a temperature reading (°C) from sensor
 float getTemp (){
 
-		//use A/D converter, then convert value to celsius ------------------------------------------
-		
-		// ADC Conversion to read temperature sensor
-		// Temperature (in °C) = ((Vsense – V25) / Avg_Slope) + 25
-		// Vense = Voltage Reading From Temperature Sensor
-		// V25 = Voltage at 25°C, for STM32F407 = 0.76V
-		// Avg_Slope = 2.5mV/°C
-		// This data can be found in the STM32F407VF Data Sheet
 		float TemperatureValue;
-		ADC_SoftwareStartConv(ADC1); //Start the conversion
-		while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET)
-		; //Processing the conversion
-		TemperatureValue = ADC_GetConversionValue(ADC1); //Return the converted data
+	
+		// obtain value from ADC
+		ADC_SoftwareStartConv(ADC1); 														//start conversion
+		while (ADC_GetFlagStatus(ADC1, ADC_FLAG_EOC) == RESET); //wait for conversion to process
+		ADC_ClearFlag (ADC1, ADC_FLAG_EOC);											//end of conversion
+		TemperatureValue = ADC_GetConversionValue(ADC1); 				//return converted value
+	
+		// filter ADC output value with Kalman filter
 		Kalmanfilter_C(TemperatureValue, &kstate);
-		printf ("%f\t%f\n",TemperatureValue,kstate.x);
-		TemperatureValue *= 3000; //voltage range 0 to 3 V
-		TemperatureValue /= 4095; //divide by 12-bits of resolution -> Reading in mV
-		TemperatureValue /= 1000.0; //Reading in Volts
-		TemperatureValue -= 0.760; // Subtract the reference voltage at 25°C
-		TemperatureValue /= .0025; // Divide by slope 2.5mV
-		TemperatureValue += 25.0; // Add the 25°C
+		TemperatureValue = kstate.x;
+		//printf ("%f\t%f\n",TemperatureValue,kstate.x);
+		
+		// value converted from voltage to °C	(reference: STM32F407VG datasheet)
+		TemperatureValue *= 3000; 		// voltage range 0 to 3000 mV
+		TemperatureValue /= 4095; 		// divide by 12-bits of resolution -> reading in mV
+		TemperatureValue /= 1000.0; 	// reading in Volts
+		TemperatureValue -= 0.760; 		// subtract reference voltage for 25°C
+		TemperatureValue /= .0025; 		// divide by 2.5 mV/°C
+		TemperatureValue += 25.0; 		// add back 25°C
 		
 		return TemperatureValue;
 }

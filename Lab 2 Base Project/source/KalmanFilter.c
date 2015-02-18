@@ -1,5 +1,8 @@
-#include "KalmanFilter.h"
+/*
+Group 8
+*/
 
+#include "KalmanFilter.h"
 
 // Kalman Filter
 void Kalmanfilter_C(float measurement, kalman_state* kstate)

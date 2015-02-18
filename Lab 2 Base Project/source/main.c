@@ -1,15 +1,18 @@
-// INCLUDES --------------------------------------------------------------------------------------
+/*
+Group 8
+*/
+
 #include "stdio.h"
 #include "GPIO_helper.h"
 #include "temperature_helper.h"
 
 unsigned int ticks = 0; //for SysTick timer
 
-// MAIN ---------- -------------------------------------------------------------------------------
+// MAIN
 int main(void){
 	
 		GPIO_init();
-		temp_init();
+		ADC_init();
 	
 		float previousTemp = getTemp();
 		float currentTemp;
@@ -23,27 +26,26 @@ int main(void){
 		int mode = 0;
 		int max_period = 15;
 		
-		//SysTick timer and obtain Temp reading ------------------------------------------------------
-		
+		//SysTick timer		
 		while(1){		 
 			ticks = 0;
-			// Configure for 1 kHz period
-			SysTick_Config(SystemCoreClock / 1000); //Number of ticks between two interrupts
-			// or 1/Freq * SystemCoreClock
+			// 	configure for 1 kHz period
+			//	number of ticks between two interrupts
+			// 	or 1/Freq * SystemCoreClock
+			SysTick_Config(SystemCoreClock / 1000); 
+		
 			while(1){
-				// Wait for an interrupt
-				while(!ticks);
-				// Decrement ticks
-				ticks = 0;
-				
+				while(!ticks);						// Wait for an interrupt
+				ticks = 0;								// Decrement ticks
 				sampling++;
-				// read temperature from the sensor
-				if(sampling == 20){
+				if(sampling == 20){ 			// read temperature from the sensor
 					currentTemp = getTemp ();
 					sampling = 0;
 					//printf ("%d\t%f\t%f\n", position, previousTemp, currentTemp);
+					printf ("%f\n", currentTemp);
 				}
 				
+				// high temperature LED warning alarm
 				if(currentTemp > 60){
 					PWM_counter++;
 					if(duty_cycle == max_period){
@@ -71,6 +73,7 @@ int main(void){
 						LEDs_OFF();
 					}					
 				}
+				// rotating LED temperature range display
 				else if(currentTemp < previousTemp - 2){
 					previousTemp = currentTemp;
 					position = (position + 3) % 4;
@@ -85,7 +88,7 @@ int main(void){
 		}
 }
 
-//Interrupt handler for system tick
+// INTERRUPT HANDLER FOR SYSTICK TIMER
 void SysTick_Handler(){
 	ticks = 1;
 }

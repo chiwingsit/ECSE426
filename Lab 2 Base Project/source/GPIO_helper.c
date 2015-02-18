@@ -1,3 +1,7 @@
+/*
+Group 8
+*/
+
 #include "GPIO_helper.h"
 
 GPIO_InitTypeDef  GPIO_InitStruct;
