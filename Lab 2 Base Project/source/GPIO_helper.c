@@ -83,3 +83,4 @@ void LEDs_ON(){
 void LEDs_OFF(){
 		GPIO_WriteBit(GPIOD, GPIO_Pin_12 | GPIO_Pin_13 | GPIO_Pin_14 | GPIO_Pin_15, Bit_RESET);
 }
+
