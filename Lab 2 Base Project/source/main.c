@@ -24,7 +24,7 @@ int main(void){
 		int PWM_counter = 0;
 		int duty_cycle = 0;
 		int mode = 0;
-		int max_period = 15;
+		int max_period = 18;
 		
 		//SysTick timer		
 		while(1){		 
@@ -47,6 +47,7 @@ int main(void){
 				
 				// high temperature LED warning alarm
 				if(currentTemp > 60){
+					previousTemp = 62;
 					PWM_counter++;
 					if(duty_cycle == max_period){
 						mode = 1;
