@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include "stm32f4xx.h"                  // Device header
 #include "stm32f4xx_conf.h"
+#include "ACC.h"
 
 int main(){
 	
-	while(1){
-	}
+	ACC_enable();
 	
 	return 0;
 }
