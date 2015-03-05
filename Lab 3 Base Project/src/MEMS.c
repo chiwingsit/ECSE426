@@ -93,7 +93,7 @@ void MEMS_read_value () {
 		z_data = z_kstate.x;
 		
 		pitch = (180/PI) * atan2(x_data,z_data);
-		roll = (180/PI) * atan2(z_data,z_data);
+		roll = (180/PI) * atan2(y_data,z_data);
 		
 	}
 }
