@@ -8,5 +8,6 @@
 
 void MEMS_config();
 void MEMS_interrupt_config();
+void MEMS_read_value();
 
 #endif
