@@ -79,12 +79,8 @@ void MEMS_read_value () {
 		y_data -= Y_OFFSET;
 		z_data -= Z_OFFSET;	
 		
-		// use Least Square method to calibrate values 
-		//x_data = 0.9645*x_data -0.0136*y_data + 0.0766*z_data -14.9427;
-		//y_data = 0.063*x_data + 0.9893*y_data + 0.0097*z_data -16.1191;
-		//z_data = 0.0104*x_data + 0.0320*y_data + 0.9680*z_data + 10.7952;
-		
 		printf ("X: %f, Y: %f, Z: %f\n", x_data, y_data, z_data);
+		
 		//printf ("%f, %f, %f\n", x_data, y_data, z_data);
 		//printf ("%f\n", y_data);
 		
@@ -96,9 +92,8 @@ void MEMS_read_value () {
 		Kalmanfilter_C(z_data, &z_kstate);
 		z_data = z_kstate.x;
 		
-		//Tri-axis tilt sensing method for calculation pitch and roll
-		pitch = ((180.0/PI)*atan(x_data/(sqrt((y_data*y_data)+(z_data*z_data)))));
-		roll = ((180.0/PI)*atan(y_data/(sqrt((x_data*x_data)+(z_data*z_data)))));
+		pitch = (180/PI) * atan2(x_data,z_data);
+		roll = (180/PI) * atan2(y_data,z_data);
 		
 	}
 }
