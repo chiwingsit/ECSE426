@@ -13,25 +13,25 @@ extern int MEMS_interrupt_flag;
 
 // initialize Kalman filter values
 kalman_state x_kstate = {
-	0.001,         // q
-	1.377053576,	 // r
+	0.01,          // q
+	1.396274,      // r
 	0,             // x
 	1,             // p
 	0              // k
 };
 
 kalman_state y_kstate = {
-	0.001,         // q
-	0.751238021,	 // r
+	0.01,          // q
+	0.743019,      // r
 	0,             // x
 	1,             // p
 	0              // k
 };
 
 kalman_state z_kstate = {
-	0.001,         // q
-	1.711764967,	 // r
-	0,             // x
+	0.01,          // q
+	1.724278,      // r
+	1000,          // x
 	1,             // p
 	0              // k
 };
