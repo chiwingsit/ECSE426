@@ -1,14 +1,17 @@
 #ifndef segment_display_h
 #define segment_display_h
 
-#include "stm32f4xx.h"
+#include <math.h>
+#include "stm32f4xx_gpio.h"
 #include "stm32f4xx_conf.h"
+#include "keypad.h"
+#include "timer.h"
 
 // GPIO PORT B
-#define SELECT_0 GPIO_Pin_4
-#define SELECT_1 GPIO_Pin_5
-#define SELECT_2 GPIO_Pin_7
-#define SELECT_3 GPIO_Pin_8
+#define SELECT_1 GPIO_Pin_4
+#define SELECT_2 GPIO_Pin_5
+#define SELECT_3 GPIO_Pin_7
+#define SELECT_4 GPIO_Pin_8
 
 // GPIO PORT E
 #define SEGMENT_A  GPIO_Pin_7
@@ -21,8 +24,13 @@
 #define SEGMENT_DP GPIO_Pin_14
 
 void seg_disp_init();
-void display_digit(uint8_t digit);
+void display_digit(uint8_t digit, uint8_t display_point);
 void enable_pos(uint8_t digit);
+void display_angle(float angle);
+void display_int(int n);
+int display_keypad_input();
+void display_high();
+void display_low();
 void test_display();
 
 #endif

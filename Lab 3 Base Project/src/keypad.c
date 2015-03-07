@@ -1,5 +1,10 @@
 #include "keypad.h"
 
+int debounce_timer;
+const int debounce_time = 20;
+int column;
+int row;
+char key;
 
 char keys[4][3] = {  
  {'1', '2', '3'},
@@ -65,19 +70,46 @@ int get_row()
 		return -1;
 }
 
+void key_fsm()
+{
+	//printf("%d\n", keypad_state);
+	switch(keypad_state){
+		case IDLE:
+			if(column != -1 && row != -1){
+				debounce_timer = TIM_GetCounter(TIM3);
+				keypad_state = PREDEBOUNCED;
+			}
+			break;
+		case PREDEBOUNCED:
+			if((debounce_timer + debounce_time) % 200 == TIM_GetCounter(TIM3)){
+				key = keys[row][column];
+				keypad_state = PRESSED;
+			}
+			break;
+		case PRESSED:
+			if(column == -1 || row == -1){
+				debounce_timer = TIM_GetCounter(TIM3);
+				keypad_state = RELEASED;
+			}
+			break;
+		case RELEASED:
+			if((debounce_timer + debounce_time) % 200 == TIM_GetCounter(TIM3)){
+				keypad_state = IDLE;
+			}
+			break;
+	
+	}
+}
+
 char get_key()
 {
-	int column = get_column();
-	int row = get_row();
-		
-	if(column == -1 || row == -1)
-	{
-		return '\0';
-	}
-	else
-	{
-		return keys[row][column];
-	}
+	column = get_column();
+	row = get_row();
+	key = NO_KEY;
+	
+	key_fsm();
+	
+	return key;
 }
 
 
