@@ -1,15 +1,10 @@
 #include "MEMS.h"
 
-extern double x_data;
-extern double y_data;
-extern double z_data;
+const double PI = 3.14159265359;
 
-extern double pitch;
-extern double roll;
-
-static const double PI = 3.14159265359;
-
-extern int MEMS_interrupt_flag;
+double x_data;
+double y_data;
+double z_data;
 
 // initialize Kalman filter values
 kalman_state x_kstate = {
@@ -67,27 +62,42 @@ void MEMS_interrupt_config() {
 	// initialize interrupt signal (output from GPIO to which ACC interrupt is hardwired)
 	LIS3DSH_DataReadyInterruptConfig(&LIS3DSH_InterruptConfigStruct);
 	
-	EXTI_InitTypeDef exti_init_s;
-	NVIC_InitTypeDef nvic_init_s;
+	/* Enable clock for GPIOD */
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOE, ENABLE);
+	/* Enable clock for SYSCFG */
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG, ENABLE);
 	
-	// connect PE1 pin to EXTI Line 1 (INT2)
-	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOE, EXTI_PinSource1); 	
+	/* Set pin as input */
+	GPIO_InitTypeDef GPIO_InitStruct;
+	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_IN;
+	GPIO_InitStruct.GPIO_Pin = GPIO_Pin_0;
+	GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
+	GPIO_Init(GPIOE, &GPIO_InitStruct);
+	
+	EXTI_InitTypeDef EXTI_InitStruct;
+	NVIC_InitTypeDef NVIC_InitStruct;
+
+	// connect PE1 pin to EXTI Line 1 (INT1)
+	SYSCFG_EXTILineConfig(EXTI_PortSourceGPIOE, EXTI_PinSource0);
+	
 	// configure EXTI line 1 (to be source for external interrupt from ACC)
-	exti_init_s.EXTI_Line = EXTI_Line1;
-	exti_init_s.EXTI_Mode = EXTI_Mode_Interrupt;
-	exti_init_s.EXTI_Trigger = EXTI_Trigger_Rising;  
-	exti_init_s.EXTI_LineCmd = ENABLE;
+	EXTI_InitStruct.EXTI_Line = EXTI_Line0;
+	EXTI_InitStruct.EXTI_Mode = EXTI_Mode_Interrupt;
+	EXTI_InitStruct.EXTI_Trigger = EXTI_Trigger_Rising;  
+	EXTI_InitStruct.EXTI_LineCmd = ENABLE;
 	// initialize EXTI
-	EXTI_Init(&exti_init_s);
+	EXTI_Init(&EXTI_InitStruct);
 	
 	// configure and set EXTI line 1 interrupt to the lowest priority in NVIC module
-	nvic_init_s.NVIC_IRQChannel = EXTI1_IRQn;
-	nvic_init_s.NVIC_IRQChannelPreemptionPriority = 1;
-	nvic_init_s.NVIC_IRQChannelSubPriority = 0;
-	nvic_init_s.NVIC_IRQChannelCmd = ENABLE;
+	NVIC_InitStruct.NVIC_IRQChannel = EXTI0_IRQn;
+	NVIC_InitStruct.NVIC_IRQChannelPreemptionPriority = 0x0F;
+	NVIC_InitStruct.NVIC_IRQChannelSubPriority = 0x0F;
+	NVIC_InitStruct.NVIC_IRQChannelCmd = ENABLE;
 	// initialize and enable interrupt in NVIC module
-	NVIC_Init(&nvic_init_s);
+	NVIC_Init(&NVIC_InitStruct);
 }
+
 
 /* reads X,Y,Z values from sensor
    filters values using Kalman */
@@ -95,49 +105,51 @@ void MEMS_read_value () {
 	//Stores values obtained from sensor
 	float xyz_data[3];
 	
-	while (1){
-		// read values from ACC and store in xyz_data array
-		LIS3DSH_ReadACC(xyz_data);
-		
-		x_data = (double)xyz_data[0];
-		y_data = (double)xyz_data[1];
-		z_data = (double)xyz_data[2];
-		
-		// use Least Square method to calibrate values 
-		x_data = 0.9645*x_data -0.0136*y_data + 0.0766*z_data -14.9427;
-		y_data = 0.063*x_data + 0.9893*y_data + 0.0097*z_data -16.1191;
-		z_data = 0.0104*x_data + 0.0320*y_data + 0.9680*z_data + 10.7952;
-		
-		//printf ("X: %f, Y: %f, Z: %f\n", x_data, y_data, z_data);
-		printf ("%f, %f, %f\n", x_data, y_data, z_data);
-		//printf ("%f\n", x_data);
-		
-		// filter X, Y, Z using Kalman
-		Kalmanfilter_C(x_data, &x_kstate);
-		x_data = x_kstate.x;
-		Kalmanfilter_C(y_data, &y_kstate);
-		y_data = y_kstate.x;
-		Kalmanfilter_C(z_data, &z_kstate);
-		z_data = z_kstate.x;
-		
-		//Tri-axis tilt sensing method for calculation pitch and roll
-		pitch = ((180.0/PI)*atan(x_data/(sqrt((y_data*y_data)+(z_data*z_data)))));
-		roll = ((180.0/PI)*atan(y_data/(sqrt((x_data*x_data)+(z_data*z_data)))));
-		
-		//printf ("PITCH: %f, ROLL: %f\n", pitch, roll);
-		//printf ("%f, %f\n", pitch, roll);
-		
-	}
+	// read values from ACC and store in xyz_data array
+	LIS3DSH_ReadACC(xyz_data);
+	
+	x_data = (double)xyz_data[0];
+	y_data = (double)xyz_data[1];
+	z_data = (double)xyz_data[2];
+	
+	// use Least Square method to calibrate values 
+	x_data = 0.9645*x_data - 0.0136*y_data + 0.0766*z_data - 14.9427;
+	y_data = 0.0630*x_data + 0.9893*y_data + 0.0097*z_data - 16.1191;
+	z_data = 0.0104*x_data + 0.0320*y_data + 0.9680*z_data + 10.7952;
+	
+	//printf ("X: %f, Y: %f, Z: %f\n", x_data, y_data, z_data);
+	//printf ("%f, %f, %f\n", x_data, y_data, z_data);
+	//printf ("%f\n", x_data);
+	
+	// filter X, Y, Z using Kalman
+	Kalmanfilter_C(x_data, &x_kstate);
+	x_data = x_kstate.x;
+	Kalmanfilter_C(y_data, &y_kstate);
+	y_data = y_kstate.x;
+	Kalmanfilter_C(z_data, &z_kstate);
+	z_data = z_kstate.x;
 }
 
-
-
-/* interrupt service routine
-	 if EXTI_Line1 value is set, clear the flag */
-void EXTI1_IRQHandler(void){
-	if(EXTI_GetITStatus(EXTI_Line1) != RESET){
-		// clear the flag in the sensor's end
-		EXTI_ClearITPendingBit(EXTI_Line1);
-		MEMS_interrupt_flag = 1;
-	}
+double get_pitch() {
+	double pitch;
+	MEMS_read_value ();
+	//Tri-axis tilt sensing method for calculation pitch and roll
+	pitch = (180/PI) * atan2(x_data,z_data);//((180.0/PI)*atan(x_data/(sqrt((y_data*y_data)+(z_data*z_data)))));
+	
+	//printf ("pitch: %f\n", pitch);
+	return pitch;
+		
 }
+
+double get_roll() {
+	
+	double roll;
+	MEMS_read_value ();
+	//Tri-axis tilt sensing method for calculation pitch and roll
+	roll = (180/PI) * atan2(y_data,z_data);//((180.0/PI)*atan(y_data/(sqrt((x_data*x_data)+(z_data*z_data)))));
+	
+	//printf ("roll: %f\n", roll);
+	return roll;
+		
+}
+

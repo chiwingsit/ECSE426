@@ -17,7 +17,7 @@ void seg_disp_init()
 	GPIO_Init(GPIOB, &GPIO_InitStruct);
 	
 	//	Configure GPIOE for the segments
-	GPIO_InitStruct.GPIO_Pin = SEGMENT_A | SEGMENT_B | SEGMENT_C | SEGMENT_D | SEGMENT_E | SEGMENT_F | SEGMENT_G | SEGMENT_DP;
+	GPIO_InitStruct.GPIO_Pin = SEGMENT_A | SEGMENT_B | SEGMENT_C | SEGMENT_D | SEGMENT_E | SEGMENT_F | SEGMENT_G | SEGMENT_DP | SEGMENT_DT;
 	GPIO_InitStruct.GPIO_Mode = GPIO_Mode_OUT;
 	GPIO_InitStruct.GPIO_Speed = GPIO_Speed_100MHz;
 	GPIO_InitStruct.GPIO_PuPd = GPIO_PuPd_NOPULL; 
@@ -52,6 +52,7 @@ void display_digit(uint8_t digit, uint8_t display_point)
 	BitAction SEG_F  = Bit_RESET;
 	BitAction SEG_G  = Bit_RESET;
 	BitAction SEG_DP = Bit_RESET;
+	BitAction SEG_DT = Bit_RESET;
 
 	if(display_point){
 		SEG_DP = Bit_SET;
@@ -74,7 +75,7 @@ void display_digit(uint8_t digit, uint8_t display_point)
 			SEG_A = Bit_SET;
 			SEG_B = Bit_SET;
 			SEG_D = Bit_SET;
-			SEG_F = Bit_SET;
+			SEG_E = Bit_SET;
 			SEG_G = Bit_SET;
 			break;
 		case 3:
@@ -87,14 +88,14 @@ void display_digit(uint8_t digit, uint8_t display_point)
 		case 4:
 			SEG_B = Bit_SET;
 			SEG_C = Bit_SET;
-			SEG_E = Bit_SET;
+			SEG_F = Bit_SET;
 			SEG_G = Bit_SET;
 			break;
 		case 5:
 			SEG_A = Bit_SET;
 			SEG_C = Bit_SET;
 			SEG_D = Bit_SET;
-			SEG_E = Bit_SET;
+			SEG_F = Bit_SET;
 			SEG_G = Bit_SET;
 			break;
 		case 6:
@@ -138,6 +139,7 @@ void display_digit(uint8_t digit, uint8_t display_point)
 	GPIO_WriteBit(GPIOE, SEGMENT_F, SEG_F);
 	GPIO_WriteBit(GPIOE, SEGMENT_G, SEG_G);
 	GPIO_WriteBit(GPIOE, SEGMENT_DP, SEG_DP);
+	GPIO_WriteBit(GPIOE, SEGMENT_DT, SEG_DT);
 }
 
 void enable_pos(uint8_t pos) 
@@ -174,6 +176,8 @@ void display_angle(float angle)
 {
 	int digit;
 	int digit_pos = (ticks % 3) + 1;
+	
+	GPIO_SetBits(GPIOE, SEGMENT_DT);
 	
 	if(angle >= 100){
 		digit = (int) (angle / pow(10, 3-digit_pos)) % 10;
@@ -216,6 +220,8 @@ void display_high()
 	BitAction SEG_E  = Bit_RESET;
 	BitAction SEG_F  = Bit_RESET;
 	BitAction SEG_G  = Bit_RESET;
+	BitAction SEG_DP = Bit_RESET;
+	BitAction SEG_DT = Bit_RESET;
 
 	switch(digit_pos){
 		case 1:
@@ -226,14 +232,14 @@ void display_high()
 			SEG_G = Bit_SET;
 			break;
 		case 2:
-			SEG_F = Bit_SET;
+			SEG_E = Bit_SET;
 			break;
 		case 3:
 			SEG_A = Bit_SET;
 			SEG_B = Bit_SET;
 			SEG_C = Bit_SET;
 			SEG_D = Bit_SET;
-			SEG_E = Bit_SET;
+			SEG_F = Bit_SET;
 			SEG_G = Bit_SET;
 			break;
 		case 4:
@@ -252,6 +258,8 @@ void display_high()
 	GPIO_WriteBit(GPIOE, SEGMENT_E, SEG_E);
 	GPIO_WriteBit(GPIOE, SEGMENT_F, SEG_F);
 	GPIO_WriteBit(GPIOE, SEGMENT_G, SEG_G);
+	GPIO_WriteBit(GPIOE, SEGMENT_DP, SEG_DP);
+	GPIO_WriteBit(GPIOE, SEGMENT_DT, SEG_DT);
 }
 
 void display_low()
@@ -266,6 +274,8 @@ void display_low()
 	BitAction SEG_E  = Bit_RESET;
 	BitAction SEG_F  = Bit_RESET;
 	BitAction SEG_G  = Bit_RESET;
+	BitAction SEG_DP = Bit_RESET;
+	BitAction SEG_DT = Bit_RESET;
 
 	switch(digit_pos){
 		case 1:
@@ -276,18 +286,18 @@ void display_low()
 		case 2:
 			SEG_C = Bit_SET;
 			SEG_D = Bit_SET;
-			SEG_F = Bit_SET;
+			SEG_E = Bit_SET;
 			SEG_G = Bit_SET;
 			break;
 		case 3:
 			SEG_C = Bit_SET;
 			SEG_D = Bit_SET;
-			SEG_F = Bit_SET;
+			SEG_E = Bit_SET;
 			break;
 		case 4:
 			SEG_C = Bit_SET;
 			SEG_D = Bit_SET;
-			SEG_F = Bit_SET;
+			SEG_E = Bit_SET;
 			break;
 	}
 
@@ -299,12 +309,28 @@ void display_low()
 	GPIO_WriteBit(GPIOE, SEGMENT_E, SEG_E);
 	GPIO_WriteBit(GPIOE, SEGMENT_F, SEG_F);
 	GPIO_WriteBit(GPIOE, SEGMENT_G, SEG_G);
+	GPIO_WriteBit(GPIOE, SEGMENT_DP, SEG_DP);
+	GPIO_WriteBit(GPIOE, SEGMENT_DT, SEG_DT);
 }
 
 void display_int(int n)
 {
 	int digit;
-	int digit_pos = (ticks % 4) + 1;
+	int digit_pos;
+	
+	if(n >= 1000){
+		digit_pos = (ticks % 4) + 1;
+	}
+	else if(n >= 100){
+		digit_pos = (ticks % 3) + 2;
+	}
+	else if(n >= 10){
+		digit_pos = (ticks % 2) + 3;
+	}
+	else if(n >= 0){
+		digit_pos = (ticks % 1) + 4;
+	}
+	
 	enable_pos(digit_pos);
 	digit = (int) (n / pow(10, 4-digit_pos)) % 10;
 	display_digit(digit,0);
@@ -326,7 +352,7 @@ int display_keypad_input()
 		}
 		c = get_key();
 	}
-	
+	printf("input: %d\n", input);
 	return input;
 }
 

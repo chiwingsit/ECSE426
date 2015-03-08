@@ -22,6 +22,7 @@
 #define SEGMENT_F  GPIO_Pin_12
 #define SEGMENT_G  GPIO_Pin_13
 #define SEGMENT_DP GPIO_Pin_14
+#define SEGMENT_DT GPIO_Pin_15
 
 void seg_disp_init();
 void display_digit(uint8_t digit, uint8_t display_point);
