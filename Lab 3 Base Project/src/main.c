@@ -29,10 +29,10 @@ int main(){
 			printf("%f\n", angle);
 		}
 
-		if(angle > (input + 5) % 180){
+		if(angle > input + 5){
 			display_low();
 		}
-		else if(angle < (input - 5) % 180 ){
+		else if(angle < input - 5 ){
 			display_high();
 		}
 		else{

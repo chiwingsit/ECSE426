@@ -6,6 +6,7 @@
 *.crf
 *.d
 *.dep
+obj/
 
 # Precompiled Headers
 *.gch

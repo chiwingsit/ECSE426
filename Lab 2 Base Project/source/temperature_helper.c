@@ -2,8 +2,7 @@
 Group 8
 references: 
 - tutorial slides
-- http://myembeddedtutorial.blogspot.ca/2013/12/
-	working-with-stm32f4-temperature-sensor.html
+- http://myembeddedtutorial.blogspot.ca/2013/12/working-with-stm32f4-temperature-sensor.html
 */
 
 #include "temperature_helper.h"
@@ -63,8 +62,8 @@ float getTemp (){
 	
 		// filter ADC output value with Kalman filter
 		Kalmanfilter_C(TemperatureValue, &kstate);
-		TemperatureValue = kstate.x;
 		//printf ("%f\t%f\n",TemperatureValue,kstate.x);
+		TemperatureValue = kstate.x;
 		
 		// value converted from voltage to °C	(reference: STM32F407VG datasheet)
 		TemperatureValue *= 3000; 		// voltage range 0 to 3000 mV

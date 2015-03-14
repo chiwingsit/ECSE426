@@ -46,8 +46,8 @@ int main(void){
 				}
 				
 				// high temperature LED warning alarm
-				if(currentTemp > 60){
-					previousTemp = 62;
+				if(currentTemp > 40){
+					previousTemp = 42;
 					PWM_counter++;
 					if(duty_cycle == max_period){
 						mode = 1;
