@@ -19,12 +19,11 @@
 
 typedef int STATE;
 #define IDLE 0
-#define PREDEBOUNCED 1
+#define DEBOUNCING 1
 #define PRESSED 2
 #define RELEASED 3
 
 extern STATE keypad_state;
-
 
 char get_key();
 

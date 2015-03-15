@@ -25,7 +25,6 @@ int main(){
 			if(angle < 0){
 				angle = (-1) * angle;
 			}
-			//pitch = (int) (pitch + 360) % 180;
 			printf("%f\n", angle);
 		}
 

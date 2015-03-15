@@ -24,6 +24,7 @@ void seg_disp_init()
 	GPIO_Init(GPIOE, &GPIO_InitStruct);
 }
 
+// Turns on all the segments and digits
 void test_display()
 {
 	GPIO_SetBits(GPIOE, SEGMENT_A);
@@ -144,7 +145,7 @@ void display_digit(uint8_t digit, uint8_t display_point)
 
 void enable_pos(uint8_t pos) 
 {
-		// reset all LEDs
+		// reset all digits
 		BitAction pos1 = Bit_RESET;
 		BitAction pos2 = Bit_RESET;
 		BitAction pos3 = Bit_RESET;
@@ -165,13 +166,38 @@ void enable_pos(uint8_t pos)
 				break;
 		}
 
-		// write corresponding bits to LEDs
+		// write corresponding bits to digits
 		GPIO_WriteBit(GPIOB, SELECT_1, pos1);
 		GPIO_WriteBit(GPIOB, SELECT_2, pos2);
 		GPIO_WriteBit(GPIOB, SELECT_3, pos3);
 		GPIO_WriteBit(GPIOB, SELECT_4, pos4);
 }
 
+//Display an integer n on the 7 segment display
+void display_int(int n)
+{
+	int digit;
+	int digit_pos;
+	
+	if(n >= 1000){ // if n is 4 digits
+		digit_pos = (ticks % 4) + 1;
+	}
+	else if(n >= 100){ // if n is 3 digits
+		digit_pos = (ticks % 3) + 2;
+	}
+	else if(n >= 10){ // if n is 2 digit
+		digit_pos = (ticks % 2) + 3;
+	}
+	else if(n >= 0){ // if n is 1 digit
+		digit_pos = (ticks % 1) + 4;
+	}
+	
+	enable_pos(digit_pos);
+	digit = (int) (n / pow(10, 4-digit_pos)) % 10;
+	display_digit(digit,0);
+}
+
+//Display an angle on the 7 segment display
 void display_angle(float angle)
 {
 	int digit;
@@ -208,6 +234,7 @@ void display_angle(float angle)
 		
 }
 
+// Display the word high on the 7 segment display
 void display_high()
 {
 	int digit_pos = (ticks % 4) + 1;
@@ -262,6 +289,7 @@ void display_high()
 	GPIO_WriteBit(GPIOE, SEGMENT_DT, SEG_DT);
 }
 
+// Display the word low on the 7 segment display
 void display_low()
 {
 	int digit_pos = (ticks % 4) + 1;
@@ -313,29 +341,7 @@ void display_low()
 	GPIO_WriteBit(GPIOE, SEGMENT_DT, SEG_DT);
 }
 
-void display_int(int n)
-{
-	int digit;
-	int digit_pos;
-	
-	if(n >= 1000){
-		digit_pos = (ticks % 4) + 1;
-	}
-	else if(n >= 100){
-		digit_pos = (ticks % 3) + 2;
-	}
-	else if(n >= 10){
-		digit_pos = (ticks % 2) + 3;
-	}
-	else if(n >= 0){
-		digit_pos = (ticks % 1) + 4;
-	}
-	
-	enable_pos(digit_pos);
-	digit = (int) (n / pow(10, 4-digit_pos)) % 10;
-	display_digit(digit,0);
-}
-
+// Display input from keypad
 int display_keypad_input()
 {
 	timer_init();
@@ -356,6 +362,7 @@ int display_keypad_input()
 	return input;
 }
 
+// Handler for TIM3
 void TIM3_IRQHandler()
 {
 	if (TIM_GetITStatus(TIM3, TIM_IT_Update) != RESET)
