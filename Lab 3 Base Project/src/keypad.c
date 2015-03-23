@@ -82,7 +82,7 @@ void key_fsm()
 		case IDLE:
 			if(column != -1 && row != -1){
 				debounce_timer = TIM_GetCounter(TIM3);
-				keypad_state = debounce_timer;
+				keypad_state = DEBOUNCING;
 			}
 			break;
 		case DEBOUNCING:
