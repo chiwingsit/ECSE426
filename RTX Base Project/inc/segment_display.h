@@ -6,7 +6,7 @@
 #include "stm32f4xx_conf.h"
 #include "keypad.h"
 #include "cmsis_os.h"
-#include "TIM.h"
+#include "timer.h"
 
 // GPIO PORT B
 #define SELECT_1 GPIO_Pin_4

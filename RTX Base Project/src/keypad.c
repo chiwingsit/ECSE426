@@ -81,7 +81,7 @@ void key_fsm()
 			}
 			break;
 		case PREDEBOUNCED:
-			if((debounce_timer + debounce_time) % 20 == TIM_GetCounter(TIM7)){
+			if((debounce_timer + debounce_time) % 10 == TIM_GetCounter(TIM7)){
 				key = keys[row][column];
 				keypad_state = PRESSED;
 			}
@@ -93,7 +93,7 @@ void key_fsm()
 			}
 			break;
 		case RELEASED:
-			if((debounce_timer + debounce_time) % 20 == TIM_GetCounter(TIM7)){
+			if((debounce_timer + debounce_time) % 10 == TIM_GetCounter(TIM7)){
 				keypad_state = IDLE;
 			}
 			break;

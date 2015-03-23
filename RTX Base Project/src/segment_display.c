@@ -340,7 +340,7 @@ void display_int(uint32_t n)
 	int digit_pos;
 	ticks++;
 	if(ticks == 5)
-		ticks == 0;
+		ticks = 0;
 	
 	if(n >= 1000){
 		digit_pos = (ticks % 4) + 1;
@@ -355,32 +355,9 @@ void display_int(uint32_t n)
 		digit_pos = (ticks % 1) + 4;
 	}
 	
-	//float f = pow(10, 4-digit_pos);
-	double f = 1.00;
 	enable_pos(digit_pos);
 	digit = (int) (n / pow(10, 4-digit_pos)) % 10;
 	display_digit(digit,0);
 }
-
-int display_keypad_input()
-{
-	timer_init();
-	int input = 0;
-	
-	char c = get_key();
-	while(c != '#')
-	{
-		display_int(input);
-		if(input < 1000){
-			if(c != NO_KEY){
-				input = (input * 10) + c - '0';
-			}
-		}
-		c = get_key();
-	}
-	printf("input: %d\n", input);
-	return input;
-}
-
 
 

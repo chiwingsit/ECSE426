@@ -18,7 +18,6 @@ osTimerId timerId2;
 
 void Timer_PMW(void const *arg)
 {
-	printf("%d\n",tick);
 	tick++;
 }	
 

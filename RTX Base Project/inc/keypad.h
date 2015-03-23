@@ -2,7 +2,7 @@
 #define keypad_h
 
 #include "stm32f4xx_gpio.h"
-#include "TIM.h"
+#include "timer.h"
 
 // GPIO PORT D
 #define ROW_0 GPIO_Pin_8
